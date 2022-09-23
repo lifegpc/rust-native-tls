@@ -37,6 +37,8 @@
 //! * `vendored` - If enabled, the crate will compile and statically link to a
 //!     vendored copy of OpenSSL. This feature has no effect on Windows and
 //!     macOS, where OpenSSL is not used.
+//! * `schannel` - If enabled, use the schannel on Windows platform. (Also need
+//!     disable deafult features.)
 //!
 //! # Examples
 //!
@@ -108,16 +110,16 @@ use std::fmt;
 use std::io;
 use std::result;
 
-#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "ios")))]
+#[cfg(not(any(all(feature = "schannel", target_os = "windows"), target_os = "macos", target_os = "ios")))]
 #[macro_use]
 extern crate log;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 #[path = "imp/security_framework.rs"]
 mod imp;
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", feature = "schannel"))]
 #[path = "imp/schannel.rs"]
 mod imp;
-#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "ios")))]
+#[cfg(not(any(all(feature = "schannel", target_os = "windows"), target_os = "macos", target_os = "ios")))]
 #[path = "imp/openssl.rs"]
 mod imp;
 
