@@ -18,6 +18,22 @@ use std::sync::Once;
 
 use {Protocol, TlsAcceptorBuilder, TlsConnectorBuilder};
 
+/// Get executable location, if not found, return current directory (./)
+pub fn get_exe_path_else_current() -> std::path::PathBuf {
+    let re = std::env::current_exe();
+    match re {
+        Ok(pa) => {
+            let mut p = pa.clone();
+            p.pop();
+            p
+        }
+        Err(_) => {
+            let p = std::path::Path::new("./");
+            p.to_path_buf()
+        }
+    }
+}
+
 #[cfg(have_min_max_version)]
 fn supported_protocols(
     min: Option<Protocol>,
@@ -291,7 +307,24 @@ impl TlsConnector {
         supported_protocols(builder.min_protocol, builder.max_protocol, &mut connector)?;
 
         if builder.disable_built_in_roots {
-            connector.set_cert_store(X509StoreBuilder::new()?.build());
+            let mut store = X509StoreBuilder::new()?;
+            match std::env::var("SSL_CERT_FILE") {
+                Ok(s) => {
+                    if s.len() == 0 || !std::path::Path::new(&s).exists() {
+                        let cert = get_exe_path_else_current().join("cert.pem");
+                        if cert.exists() {
+                            store.load_file(&cert)?;
+                        }
+                    }
+                }
+                Err(_) => {
+                    let cert = get_exe_path_else_current().join("cert.pem");
+                    if cert.exists() {
+                        store.load_file(&cert)?;
+                    }
+                }
+            }
+            connector.set_cert_store(store.build());
         }
 
         for cert in &builder.root_certificates {
