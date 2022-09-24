@@ -306,26 +306,24 @@ impl TlsConnector {
         }
         supported_protocols(builder.min_protocol, builder.max_protocol, &mut connector)?;
 
-        if builder.disable_built_in_roots {
-            let mut store = X509StoreBuilder::new()?;
-            match std::env::var("SSL_CERT_FILE") {
-                Ok(s) => {
-                    if s.len() == 0 || !std::path::Path::new(&s).exists() {
-                        let cert = get_exe_path_else_current().join("cert.pem");
-                        if cert.exists() {
-                            store.load_file(&cert)?;
-                        }
-                    }
-                }
-                Err(_) => {
+        let mut store = X509StoreBuilder::new()?;
+        match std::env::var("SSL_CERT_FILE") {
+            Ok(s) => {
+                if s.len() == 0 || !std::path::Path::new(&s).exists() {
                     let cert = get_exe_path_else_current().join("cert.pem");
                     if cert.exists() {
                         store.load_file(&cert)?;
                     }
                 }
             }
-            connector.set_cert_store(store.build());
+            Err(_) => {
+                let cert = get_exe_path_else_current().join("cert.pem");
+                if cert.exists() {
+                    store.load_file(&cert)?;
+                }
+            }
         }
+        connector.set_cert_store(store.build());
 
         for cert in &builder.root_certificates {
             if let Err(err) = connector.cert_store_mut().add_cert((cert.0).0.clone()) {
