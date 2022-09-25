@@ -313,6 +313,7 @@ impl TlsConnector {
                     let cert = get_exe_path_else_current().join("cert.pem");
                     if cert.exists() {
                         store.load_file(&cert)?;
+                        connector.set_cert_store(store.build());
                     }
                 }
             }
@@ -320,10 +321,10 @@ impl TlsConnector {
                 let cert = get_exe_path_else_current().join("cert.pem");
                 if cert.exists() {
                     store.load_file(&cert)?;
+                    connector.set_cert_store(store.build());
                 }
             }
         }
-        connector.set_cert_store(store.build());
 
         for cert in &builder.root_certificates {
             if let Err(err) = connector.cert_store_mut().add_cert((cert.0).0.clone()) {
